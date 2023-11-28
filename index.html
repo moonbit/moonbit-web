@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head></head>
+
+<body>
+    <script>
+        var memory;
+        var codes = [];
+        function flush() {
+            console.log(new TextDecoder().decode(new Uint8Array(codes).valueOf()));
+            codes = [];
+        }
+        const importObject = {
+            spectest: {
+                print_char: (x) => {
+                    if (x == '\n'.charCodeAt(0)) {
+                        flush();
+                    }
+                    else if (x == '\r'.charCodeAt(0)) {
+                        //
+                    }
+                    else {
+                        codes.push(x);
+                    }
+                }
+            },
+            js_string: {
+                new: (offset, length) => {
+                    const bytes = new Uint8Array(memory.buffer, offset, length);
+                    const string = new TextDecoder("utf8").decode(bytes);
+                    return string
+                },
+                empty: () => "",
+                log: (string) => console.log(string),
+            },
+        }
+        WebAssembly.instantiateStreaming(fetch("./target/wasm-gc/release/build/main/main.wasm"), importObject).then((obj) => {
+            memory = obj.instance.exports["moonbit.memory"]
+            obj.instance.exports["_start"]()
+            if (codes.length > 0) flush();
+            console.log("add(1, 2) =", obj.instance.exports["moon-web-gc/main::add"](1, 2))
+        })
+    </script>
+</body>
+
+</html>
